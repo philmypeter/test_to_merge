@@ -359,12 +359,12 @@ function ManualUI(elem, runner) {
 
     this.pass_button.onclick = function() {
         this.disable_buttons();
-        this.runner.on_result("PASS", "", []);
+        this.runner.on_result("PASS", "", "unjs");
     }.bind(this);
 
     this.fail_button.onclick = function() {
         this.disable_buttons();
-        this.runner.on_result("FAIL", "", []);
+        this.runner.on_result("FAIL", "", "unjs");
     }.bind(this);
 }
 
@@ -661,6 +661,13 @@ Runner.prototype = {
     },
 
     on_result: function(status, message, subtests) {
+        if (this.current_test.type == "manual" || this.current_test.type == "reftest"){
+            if (subtests != "unjs"){
+                return;
+            }else{
+                subtests = [];
+            }
+        }
         clearTimeout(this.timeout);
         this.results.set(this.current_test, status, message, subtests);
         this.result_callbacks.forEach(function(callback) {
