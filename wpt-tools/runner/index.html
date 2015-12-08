@@ -72,6 +72,10 @@
               <input type=checkbox id='dumpit'>
               Dump JSON
             </label>
+            <label>
+              <input type=checkbox id='iframe'>
+              Run tests in iframe
+            </label>
           </div>
         </div>
 
@@ -169,7 +173,9 @@
       </table>
       <a class="jsonResults btn btn-primary pull-right">Download JSON results</a>
     </div>
-
+    <div id="runMode">
+      <iframe id="testFrame" allowFullScreen="true" mozAllowFullScreen="true" webkitAllowFullScreen="true"></iframe>
+    </div>
     <div class="results">
       <div id="manualUI">
         <div class='panel panel-primary'>

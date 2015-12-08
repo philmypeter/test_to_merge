@@ -285,7 +285,7 @@ VisualOutput.prototype = {
         var json = this.runner.results.to_json();
 
         if (document.getElementById("dumpit").checked) {
-        		this.json_results_area = Array.prototype.slice.call(this.elem.querySelectorAll("textarea"));
+            this.json_results_area = Array.prototype.slice.call(this.elem.querySelectorAll("textarea"));
             for(var i = 0,t = this.json_results_area.length; i < t; i++){
                 this.elem.removeChild(this.json_results_area[i]);
             }
@@ -435,6 +435,7 @@ function TestControl(elem, runner) {
         }.bind(this),
         false);
     }.bind(this));
+    this.iframe_checkbox = this.elem.querySelector("#iframe");
     this.timeout_input = this.elem.querySelector(".timeout_multiplier");
     this.render_checkbox = this.elem.querySelector(".render");
     this.runner = runner;
@@ -448,6 +449,7 @@ TestControl.prototype = {
         this.pause_button.disabled = true;
         this.start_button.textContent = "Start";
         this.path_input.disabled = false;
+        this.iframe_checkbox.disabled = false;
         this.type_checkboxes.forEach(function(elem) {
             elem.disabled = false;
         });
@@ -456,7 +458,11 @@ TestControl.prototype = {
             var test_types = this.get_test_types();
             var settings = this.get_testharness_settings();
             var use_regex = this.get_use_regex();
-            this.runner.start(path, test_types, settings, use_regex);
+            var run_mode = "window";
+            if (this.iframe_checkbox.checked) {
+                run_mode = "iframe";
+            }
+            this.runner.start(path, test_types, settings, use_regex, run_mode);
             this.set_stop();
             this.set_pause();
         }.bind(this);
@@ -567,7 +573,9 @@ function Runner(manifest_path) {
     this.manifest_iterator = null;
 
     this.test_window = null;
+    this.test_frame = document.getElementById('testFrame');
     this.test_div = document.getElementById('test_url');
+    this.run_mode = null;
     this.current_test = null;
     this.timeout = null;
     this.num_tests = null;
@@ -605,7 +613,7 @@ Runner.prototype = {
         }
     },
 
-    start: function(path, test_types, testharness_settings, use_regex) {
+    start: function(path, test_types, testharness_settings, use_regex, run_mode) {
         this.pause_flag = false;
         this.stop_flag = false;
         this.done_flag = false;
@@ -613,6 +621,7 @@ Runner.prototype = {
         this.use_regex = use_regex;
         this.test_types = test_types;
         window.testharness_properties = testharness_settings;
+        this.run_mode = run_mode;
         this.manifest_iterator = new ManifestIterator(this.manifest, this.path, this.test_types, this.use_regex);
         this.num_tests = null;
 
@@ -632,7 +641,11 @@ Runner.prototype = {
 
     do_start: function() {
         if (this.manifest_iterator.count() > 0) {
-            this.open_test_window();
+            if (this.run_mode ==="window") {
+                this.open_test_window();
+            }else if (this.run_mode === "iframe") {
+                this.test_frame.style.display = "block";
+            }
             this.start_callbacks.forEach(function(callback) {
                 callback();
             });
@@ -682,8 +695,13 @@ Runner.prototype = {
 
     done: function() {
         this.done_flag = true;
-        if (this.test_window) {
-            this.test_window.close();
+        if (this.run_mode === "window") {
+            if (this.test_window) {
+                this.test_window.close();
+            }
+        } else {
+            this.test_frame.src = "";
+            this.test_frame.style.display = "none";
         }
         this.done_callbacks.forEach(function(callback) {
             callback();
@@ -715,10 +733,14 @@ Runner.prototype = {
     },
 
     load: function(path) {
-        if (this.test_window.location === null) {
-            this.open_test_window();
+        if (this.run_mode === "window") {
+            if (this.test_window.location === null) {
+                this.open_test_window();
+            }
+            this.test_window.location.href = this.server + path;
+        } else {
+            this.test_frame.src = this.server + path;
         }
-        this.test_window.location.href = this.server + path;
     },
 
     progress: function() {
